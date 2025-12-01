@@ -26,6 +26,10 @@ handlers = [Handler() for Handler in [YAMLHandler, TOMLHandler]]
 
 
 def detect_format(text: str, handlers: Iterable[BaseHandler]) -> BaseHandler | None:
+    """
+    Figure out which handler to use, based on metadata. Allows `load` to be called without
+    setting the handler arg.
+    """
     for handler in handlers:
         if handler.detect(text):
             return handler
@@ -38,10 +42,14 @@ def parse(
     handler: BaseHandler | None = None,
     **defaults: object,
 ) -> tuple[dict[str, object], str]:
+    """
+    Parse text with frontmatter, return metadata and content.
+    Pass in optional metadata default values.
+    """
     text = u(text, encoding).strip()
     metadata = defaults.copy()
-    handler = handler or detect_format(text, handlers)
 
+    handler = handler or detect_format(text, handlers)
     if handler is None:
         return metadata, text
 
@@ -58,6 +66,9 @@ def parse(
 
 
 def check(fd: TextIO | PathLike[str] | str, encoding: str = "utf-8") -> bool:
+    """
+    Check if a file-like object or filename has frontmatter.
+    """
     if is_readable(fd):
         text = fd.read()
 
@@ -68,10 +79,14 @@ def check(fd: TextIO | PathLike[str] | str, encoding: str = "utf-8") -> bool:
     else:
         return False
 
+    # Does the actual checking:
     return checks(text, encoding)
 
 
 def checks(text: str, encoding: str = "utf-8") -> bool:
+    """
+    Check if text (binary or unicode) has frontmatter.
+    """
     text = u(text, encoding)
     return detect_format(text, handlers) is not None
 
@@ -82,6 +97,10 @@ def load(
     handler: BaseHandler | None = None,
     **defaults: object,
 ) -> Post:
+    """
+    Load and parse a file-like object or filename.
+    Returns a Post object
+    """
     if is_readable(fd):
         text = fd.read()
     elif can_open(fd):
@@ -92,7 +111,8 @@ def load(
         raise ValueError(f"Cannot open filename using type {type(fd)}")
 
     handler = handler or detect_format(text, handlers)
-    return loads(text, encoding, handler, **defaults)
+    post = loads(text, encoding, handler, **defaults)
+    return post
 
 
 def loads(
@@ -101,6 +121,9 @@ def loads(
     handler: BaseHandler | None = None,
     **defaults: object,
 ) -> Post:
+    """
+    Parse text (binary or unicode) and return a Post object.
+    """
     text = u(text, encoding)
     handler = handler or detect_format(text, handlers)
     metadata, content = parse(text, encoding, handler, **defaults)
@@ -114,6 +137,15 @@ def dump(
     handler: BaseHandler | None = None,
     **kwargs: object,
 ) -> None:
+    """
+    Serialize a Post to a string and write to a file-like object.
+
+    >>> from io import StringIO
+    >>> post = frontmatter.load("./foo.txt")
+    >>> f = StringIO()
+    >>> frontmatter.dump(post, f)
+    >>> print(f.getvalue())
+    """
     content = dumps(post, handler, **kwargs)
     if is_writable(fd):
         fd.write(content)
@@ -129,6 +161,18 @@ def dumps(
     handler: BaseHandler | None = None,
     **kwargs: object,
 ) -> str:
+    """
+    Serializa a Post to a string and return text.
+    Passing `handler` will change how metadata is constructed.
+
+    >>> post = frontmatter.load("./foo.txt")
+    >>> print(frontmatter.dumps(post))
+    >>> # or
+    >>> from frontmatter.default_handlers import TOMLHandler, YAMLHandler
+    >>> print(frontmatter.dumps(post, handler=YAMLHandler())
+    >>> # or
+    >>> print(frontmatter.dumps(post, handler=TOMLHandler())
+    """
     if handler is None:
         handler = getattr(post, "handler", None) or YAMLHandler()
 
