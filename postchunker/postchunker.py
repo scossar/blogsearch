@@ -1,31 +1,7 @@
-import frontmatter
-from frontmatter import Post
-from pathlib import Path
-from typing import cast, Any, Dict, List
+from typing import Any, Dict, List
 import re
-import mistune
 
-postspath = "/home/scossar/projects/zalgorithm/content"
-# To generate an AST, call with `markdown(post.content)`
-# See https://github.com/lepture/mistune/blob/4adac1c6e7e14e7deeb1bf6c6cd8c6816f537691/docs/renderers.rst#L56
-# for the list of available methods (list of nodes that will be generated)
-markdown = mistune.create_markdown(
-    renderer=None, plugins=["footnotes"]
-)  # Creates an AST renderer
-
-
-def should_process_file(filepath: Path) -> bool:
-    if any(part.startswith(".") for part in filepath.parts):
-        print("starts with .")
-        return False
-    if filepath.suffix.lower() not in (".md", ".markdown"):
-        return False
-    return True
-
-
-def load_file(filepath: Path) -> Post:
-    post = frontmatter.load(filepath)
-    return post
+__all__ = ["extract_sections"]
 
 
 def extract_text_from_node(node: Dict[str, Any]) -> str:
@@ -33,6 +9,7 @@ def extract_text_from_node(node: Dict[str, Any]) -> str:
         return node["raw"]
 
     # this will remove the footnotes section, as long as it's properly structured
+    # TODO: check how brittle this is
     if node["type"] == "footnote_item":
         return ""
 
@@ -117,27 +94,3 @@ def extract_sections(
         sections.append(current_section)
 
     return sections
-
-
-for path in Path(postspath).rglob("*"):
-    if not should_process_file(path):
-        continue
-    stem = path.stem
-    # testing
-    # stem_name = "chunking_hugo_post_content_for_semantic_search"
-    stem_name = "roger-bacon-as-magician"
-    if stem == stem_name:
-        post = load_file(path)
-        title = str(post["title"])  # it's a string
-        nodes = markdown(post.content)
-        nodes = cast(list[dict[str, Any]], nodes)
-        # From `markdown.py`, the __call__(self, s: str) method calls `self.parse(s)[0]`
-        # The return type is `Union[str, List[Dict[str, Any]]]`, but for the "None" renderer
-        # the returned type will be `List[Dict[str, Any]]`
-        # for node in nodes[:25]:
-        #     print(node)
-        #     print("\n")
-        sections = extract_sections(nodes, headings=[title])
-        for section in sections:
-            print(section)
-            print("\n")
