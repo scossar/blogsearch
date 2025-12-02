@@ -19,7 +19,7 @@ from .default_handlers import TOMLHandler, YAMLHandler, BaseHandler
 from .util import can_open, is_readable, is_writable, u
 from .post import Post
 
-__all__ = ["parse", "load", "loads", "dump", "dumps"]
+__all__ = ["parse", "load", "loads", "dump", "dumps", "Post"]
 
 # Calls the class constructor `Handler()` for each `Handler`
 handlers = [Handler() for Handler in [YAMLHandler, TOMLHandler]]
