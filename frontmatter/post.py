@@ -28,7 +28,7 @@ class Post(object):
         handler: Any
         | None = None,  # using Any instead of BaseHandler to deal with circular dependency issue
         **metadata: object,
-    ) -> None:
+    ) -> None:  # I'm not sure it makes sense to have a return value here?
         self.content = str(content)
         self.metadata = metadata
         self.handler = handler
